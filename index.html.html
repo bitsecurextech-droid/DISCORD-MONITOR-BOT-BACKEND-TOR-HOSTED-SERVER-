@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DISCORD-MONITOR // ACTIVE NODE :: CEH OPERATIONS</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff41;
+    --dim-green: #00c832;
+    --dark-green: #003b00;
+    --red: #ff0033;
+    --amber: #ffb000;
+    --cyan: #00f5ff;
+    --bg: #020a02;
+    --panel: #040d04;
+    --border: #00ff4133;
+    --glow: 0 0 8px #00ff41, 0 0 20px #00ff4155;
+    --red-glow: 0 0 8px #ff0033, 0 0 20px #ff003355;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* Scanlines overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,255,65,0.015) 2px,
+      rgba(0,255,65,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* CRT flicker */
+  @keyframes flicker {
+    0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:.8} 94%{opacity:1} 96%{opacity:.9} 97%{opacity:1}
+  }
+  body { animation: flicker 8s infinite; }
+
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  @keyframes glitch {
+    0%{clip-path:inset(0 0 95% 0)} 20%{clip-path:inset(30% 0 50% 0)} 40%{clip-path:inset(70% 0 10% 0)} 60%{clip-path:inset(20% 0 70% 0)} 80%{clip-path:inset(50% 0 30% 0)} 100%{clip-path:inset(0 0 95% 0)}
+  }
+  @keyframes pulse { 0%,100%{box-shadow:var(--glow)} 50%{box-shadow:0 0 4px #00ff41, 0 0 10px #00ff4133} }
+  @keyframes scroll-data { from{transform:translateY(0)} to{transform:translateY(-50%)} }
+  @keyframes rotate { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes typewriter { from{width:0} to{width:100%} }
+  @keyframes red-pulse { 0%,100%{box-shadow:var(--red-glow)} 50%{box-shadow:0 0 4px #ff0033} }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--green);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #001a00 0%, var(--bg) 100%);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 20px #00ff4122;
+  }
+
+  .logo-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .hex-icon {
+    width: 44px; height: 44px;
+    border: 2px solid var(--green);
+    clip-path: polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    background: var(--dark-green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--glow);
+    animation: pulse 3s infinite;
+  }
+
+  .logo-text {
+    font-family: 'Orbitron', monospace;
+    font-weight: 900;
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: var(--glow);
+  }
+
+  .logo-sub {
+    font-size: 10px;
+    color: var(--dim-green);
+    letter-spacing: 2px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 11px;
+  }
+
+  .status-badge {
+    background: #001a00;
+    border: 1px solid var(--green);
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    box-shadow: var(--glow);
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: blink 1.2s infinite;
+  }
+
+  .commit-hash {
+    color: var(--cyan);
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  .timestamp { color: var(--dim-green); font-size: 11px; }
+
+  /* ALERT BANNER */
+  .alert-banner {
+    background: linear-gradient(90deg, #1a0000, #0d0000, #1a0000);
+    border-top: 1px solid var(--red);
+    border-bottom: 1px solid var(--red);
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--red);
+    overflow: hidden;
+  }
+
+  .alert-label {
+    background: var(--red);
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 8px;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+
+  .marquee-text {
+    white-space: nowrap;
+    animation: marquee 30s linear infinite;
+  }
+  @keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-100%)} }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    grid-template-rows: auto;
+    gap: 1px;
+    background: #00ff4111;
+    min-height: calc(100vh - 100px);
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 0;
+  }
+
+  .panel-header {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #001200;
+  }
+
+  .panel-header .ph-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-icon {
+    width: 8px; height: 8px;
+    background: var(--green);
+    box-shadow: var(--glow);
+  }
+
+  .panel-body { padding: 16px; }
+
+  /* CENTER PANEL - wide */
+  .center-col {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: #00ff4111;
+  }
+
+  /* DEPLOYMENT RECEIPT */
+  .deploy-receipt {
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+
+  .receipt-top {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .deploy-success {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .success-icon {
+    width: 36px; height: 36px;
+    border: 2px solid var(--green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: var(--glow);
+    animation: pulse 2s infinite;
+  }
+
+  .success-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-shadow: var(--glow);
+  }
+
+  .success-sub { font-size: 10px; color: var(--dim-green); margin-top: 2px; }
+
+  .deploy-meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--dim-green);
+  }
+
+  /* CONFIG GRID */
+  .config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    margin: 0;
+  }
+
+  .config-card {
+    background: var(--panel);
+    padding: 20px 24px;
+  }
+
+  .config-card-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--dim-green);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .config-row {
+    margin-bottom: 14px;
+  }
+
+  .config-label {
+    font-size: 10px;
+    color: #005500;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+
+  .config-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  .config-value.cyan { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  .config-value.amber { color: var(--amber); text-shadow: 0 0 8px var(--amber); }
+
+  /* BUILD LOG */
+  .build-log {
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+
+  .log-entries {
+    font-size: 11px;
+    line-height: 1.7;
+    padding: 16px 24px;
+    max-height: 320px;
+    overflow: hidden;
+  }
+
+  .log-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 2px 0;
+  }
+
+  .log-time { color: #004400; flex-shrink: 0; font-size: 10px; }
+
+  .log-check { color: var(--green); flex-shrink: 0; }
+  .log-check.pending { color: var(--amber); }
+
+  .log-msg { color: var(--dim-green); }
+  .log-msg.bold { color: var(--green); font-weight: bold; }
+  .log-msg.cmd { color: var(--cyan); }
+
+  .log-dur { color: #004400; font-size: 10px; margin-left: auto; flex-shrink: 0; }
+
+  .build-time-bar {
+    margin: 0 24px 16px;
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+  }
+
+  .build-time-label { color: #004400; }
+  .build-time-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* NETWORK FLOW */
+  .net-flow {
+    background: var(--panel);
+    border: 1px solid var(--border);
+  }
+
+  .net-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5px;
+  }
+
+  .net-table thead tr {
+    border-bottom: 1px solid var(--border);
+    background: #001200;
+  }
+
+  .net-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-family: 'Orbitron', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #005500;
+    font-weight: normal;
+  }
+
+  .net-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #00200033;
+    color: var(--dim-green);
+    font-size: 10px;
+  }
+
+  .net-table tr:hover td { background: #001a0022; color: var(--green); }
+
+  .dir-in { color: var(--cyan); }
+  .dir-out { color: var(--amber); }
+
+  .proto-tcp {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    background: #001a2a;
+    padding: 2px 6px;
+    border: 1px solid #00f5ff33;
+  }
+
+  .peer-internet {
+    display: flex; align-items: center; gap: 4px;
+    color: var(--dim-green);
+  }
+
+  .peer-dot { width: 6px; height: 6px; background: var(--dim-green); border-radius: 50%; }
+
+  /* SIDEBAR LEFT */
+  .sidebar-left .panel-body { padding: 0; }
+
+  .sys-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sys-label { font-size: 10px; color: #005500; letter-spacing: 1px; }
+  .sys-value { font-size: 11px; font-family: 'Orbitron', monospace; }
+  .sys-value.ok { color: var(--green); text-shadow: var(--glow); }
+  .sys-value.warn { color: var(--amber); }
+
+  .gauge-bar {
+    height: 3px;
+    background: #001a00;
+    margin: 4px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    background: var(--green);
+    box-shadow: var(--glow);
+  }
+
+  /* THREAT LEVEL */
+  .threat-panel {
+    padding: 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .threat-ring {
+    width: 80px; height: 80px;
+    border: 3px solid var(--green);
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    box-shadow: var(--glow), inset 0 0 20px #00ff4111;
+    position: relative;
+  }
+
+  .threat-ring::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border: 1px solid #00ff4133;
+    border-radius: 50%;
+    animation: rotate 10s linear infinite;
+    border-top-color: var(--green);
+  }
+
+  .threat-num {
+    font-family: 'VT323', monospace;
+    font-size: 28px;
+    color: var(--green);
+    line-height: 1;
+  }
+
+  .threat-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 7px;
+    letter-spacing: 2px;
+    color: var(--dim-green);
+  }
+
+  .threat-status {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--green);
+    margin-top: 6px;
+  }
+
+  /* SIDEBAR RIGHT */
+  .node-list { padding: 0; }
+
+  .node-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .node-item:hover { background: #001a0033; }
+
+  .node-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .node-dot.active { background: var(--green); box-shadow: var(--glow); animation: blink 2s infinite; }
+  .node-dot.idle { background: var(--amber); }
+  .node-dot.dead { background: #333; }
+
+  .node-info { flex: 1; }
+  .node-name { font-size: 11px; color: var(--green); }
+  .node-ip { font-size: 9px; color: #005500; margin-top: 1px; }
+
+  .node-latency { font-size: 10px; font-family: 'Orbitron', monospace; }
+  .node-latency.low { color: var(--green); }
+  .node-latency.mid { color: var(--amber); }
+
+  /* TERMINAL WIDGET */
+  .terminal {
+    background: #010601;
+    border: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 12px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .terminal-line {
+    color: var(--dim-green);
+    line-height: 1.8;
+  }
+
+  .terminal-line .prompt { color: var(--green); }
+  .terminal-line .cmd { color: var(--cyan); }
+  .terminal-cursor {
+    display: inline-block;
+    width: 7px; height: 13px;
+    background: var(--green);
+    animation: blink .8s step-end infinite;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #005500;
+    background: #010601;
+  }
+
+  .footer-center {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: #004400;
+  }
+
+  /* Tab UI */
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: #010601;
+  }
+
+  .tab {
+    padding: 10px 20px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    color: #005500;
+    border-bottom: 2px solid transparent;
+    transition: all .2s;
+  }
+
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+    text-shadow: var(--glow);
+    background: #001200;
+  }
+
+  .tab:hover:not(.active) { color: var(--dim-green); }
+
+  /* Glitch title */
+  .glitch-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    position: relative;
+  }
+
+  /* Watermark */
+  .watermark {
+    position: fixed;
+    bottom: 50px;
+    right: 30px;
+    font-family: 'VT323', monospace;
+    font-size: 60px;
+    color: #00ff4106;
+    letter-spacing: 8px;
+    pointer-events: none;
+    transform: rotate(-30deg);
+    z-index: 1;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="watermark">CEH</div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-block">
+    <div class="hex-icon">⬡</div>
+    <div>
+      <div class="logo-text">DISCORD-MONITOR</div>
+      <div class="logo-sub">// OFFENSIVE SECURITY OPERATIONS // NODE ACTIVE</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="commit-hash">COMMIT: 3117e9af</div>
+    <div class="timestamp" id="live-time">APR 24 2026 — 01:18:00 GMT+1</div>
+    <div class="status-badge">
+      <div class="status-dot"></div>
+      ACTIVE
+    </div>
+  </div>
+</header>
+
+<!-- ALERT BANNER -->
+<div class="alert-banner">
+  <div class="alert-label">LIVE FEED</div>
+  <div class="marquee-text">
+    &nbsp;&nbsp;&nbsp;[SYS] Node heartbeat confirmed — TCP/443 stream active — 162.159.134.234 ↔ 10.144.205.193 — 18 packets captured — Bot process running @ python@3.13.13 — Railpack v0.23.0 — Region: US-EAST4-EQDC4A — Replicas: 1 — Restart policy: ON FAILURE — Max retries: 10 — Build time: 41.28s — All systems nominal &nbsp;&nbsp;&nbsp;
+  </div>
+</div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="panel sidebar-left">
+    <div class="panel-header">
+      <div class="ph-left"><div class="panel-icon"></div> SYS::STATUS</div>
+      <span style="color:#004400;font-size:9px">MODULE_01</span>
+    </div>
+
+    <!-- Threat ring -->
+    <div class="threat-panel">
+      <div class="threat-ring">
+        <div class="threat-num">02</div>
+        <div class="threat-label">THREAT</div>
+      </div>
+      <div class="threat-status">LEVEL: LOW</div>
+    </div>
+
+    <!-- System metrics -->
+    <div class="panel-body">
+      <div class="sys-item">
+        <div>
+          <div class="sys-label">DEPLOYMENT</div>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:100%"></div></div>
+        </div>
+        <div class="sys-value ok">OK</div>
+      </div>
+      <div class="sys-item">
+        <div>
+          <div class="sys-label">NODE UPTIME</div>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:87%"></div></div>
+        </div>
+        <div class="sys-value ok">87%</div>
+      </div>
+      <div class="sys-item">
+        <div>
+          <div class="sys-label">PACKET RATE</div>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:60%"></div></div>
+        </div>
+        <div class="sys-value warn">MED</div>
+      </div>
+      <div class="sys-item">
+        <div>
+          <div class="sys-label">PROCESS MEM</div>
+          <div class="gauge-bar"><div class="gauge-fill" style="width:34%"></div></div>
+        </div>
+        <div class="sys-value ok">34%</div>
+      </div>
+
+      <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;color:#005500;letter-spacing:2px;margin-bottom:10px;">:: STACK INFO</div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">RUNTIME</div>
+          <div class="sys-value ok" style="font-size:10px;">python@3.13.13</div>
+        </div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">BUILDER</div>
+          <div class="sys-value ok" style="font-size:10px;">Railpack v0.23.0</div>
+        </div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">REGION</div>
+          <div class="sys-value ok" style="font-size:10px;">us-east4-eqdc4a</div>
+        </div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">REPLICAS</div>
+          <div class="sys-value ok" style="font-size:10px;">1</div>
+        </div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">RESTART POL.</div>
+          <div class="sys-value warn" style="font-size:10px;">ON FAILURE</div>
+        </div>
+        <div class="sys-item" style="border:none;padding:4px 0">
+          <div class="sys-label">MAX RETRIES</div>
+          <div class="sys-value ok" style="font-size:10px;">10</div>
+        </div>
+      </div>
+
+      <!-- Terminal -->
+      <div class="terminal" style="margin-top:12px;border:none;border-top:1px solid var(--border);">
+        <div class="terminal-line"><span class="prompt">root@node:~$ </span><span class="cmd">python monitor.py</span></div>
+        <div class="terminal-line" style="color:#005500;">Initializing discord monitor...</div>
+        <div class="terminal-line" style="color:#005500;">Connecting to gateway...</div>
+        <div class="terminal-line"><span class="prompt">root@node:~$ </span><span class="terminal-cursor"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER COLUMN -->
+  <div class="center-col">
+
+    <!-- DEPLOYMENT RECEIPT -->
+    <div class="deploy-receipt">
+      <div class="receipt-top">
+        <div class="deploy-success">
+          <div class="success-icon">✓</div>
+          <div>
+            <div class="success-text">DEPLOYMENT SUCCESSFUL</div>
+            <div class="success-sub">// OPERATION COMPLETE — NODE BROUGHT ONLINE</div>
+          </div>
+        </div>
+        <div class="deploy-meta">
+          <div style="color:var(--dim-green);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;">APR 24, 2026</div>
+          <div style="font-size:13px;color:var(--green);">01:18 GMT+1</div>
+          <div style="color:#005500;font-size:10px;margin-top:2px;">via GitHub → main</div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <div class="tab active">DETAILS</div>
+        <div class="tab">BUILD LOGS</div>
+        <div class="tab">DEPLOY LOGS</div>
+        <div class="tab">NETWORK FLOW</div>
+      </div>
+
+      <!-- Config cards -->
+      <div class="config-grid">
+        <div class="config-card">
+          <div class="config-card-title"><div class="panel-icon"></div> ◈ BUILD</div>
+          <div class="config-row">
+            <div class="config-label">BUILDER ENGINE</div>
+            <div class="config-value">Railpack <span style="opacity:.5">(v0.23.0)</span> 🐍</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">EXECUTABLE VERSION</div>
+            <div class="config-value cyan">python@3.13.13</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">BUILD TIME</div>
+            <div class="config-value">41.28 seconds</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">CONTEXT ID</div>
+            <div class="config-value" style="font-size:11px;color:#005500;">w6O5-4Dk4</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">COMMIT HASH</div>
+            <div class="config-value amber">3117e9af</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">SOURCE BRANCH</div>
+            <div class="config-value" style="font-size:11px">main</div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <div class="config-card-title"><div class="panel-icon"></div> ◈ DEPLOY</div>
+          <div class="config-row">
+            <div class="config-label">REGION</div>
+            <div class="config-value cyan">us-east4-eqdc4a</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">NUMBER OF REPLICAS</div>
+            <div class="config-value">1</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">RESTART POLICY</div>
+            <div class="config-value amber">ON FAILURE</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">RESTART MAX RETRIES</div>
+            <div class="config-value">10</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">VARIABLES</div>
+            <div class="config-value" style="color:#005500;">0 [CLEAN ENV]</div>
+          </div>
+          <div class="config-row">
+            <div class="config-label">DEPLOY METHOD</div>
+            <div class="config-value" style="font-size:11px">GitHub CI/CD</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUILD LOGS -->
+    <div class="build-log">
+      <div class="panel-header">
+        <div class="ph-left"><div class="panel-icon"></div> BUILD::LOG_STREAM</div>
+        <span style="color:var(--cyan);font-size:9px">41.28s TOTAL</span>
+      </div>
+
+      <div class="log-entries">
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg bold">Deploy</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg">——————————————</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg cmd">$ python monitor.py</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg" style="color:#005500;">&nbsp;</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg">Successfully prepared Railpack plan for build</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg" style="color:#005500;">&nbsp;</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-msg">context: w6O5-4Dk4</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">load build definition from railpack-plan.json</span>
+          <span class="log-dur">0ms</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">install mise packages: python</span>
+          <span class="log-dur">1s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check" style="color:#005500;">↳</span>
+          <span class="log-msg">mise python@3.13.13 ✓ installed</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">python -m venv /app/.venv</span>
+          <span class="log-dur">3s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">copy /mise/shims, /mise/installs, /usr/local/bin/mise...</span>
+          <span class="log-dur">2s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">pip install -r requirements.txt</span>
+          <span class="log-dur">10s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check" style="color:#005500;">↳</span>
+          <span class="log-msg">Successfully installed aiohappyeyeballs-2.6.1 aiohttp-3.13.5 aiosignal-1.4.0 attrs-26.1.0 audioop-lt...</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:18:54</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">copy / /app, /app/.venv, /app</span>
+          <span class="log-dur">1s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:19:15</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">importing to docker</span>
+          <span class="log-dur">3s</span>
+        </div>
+        <div class="log-line">
+          <span class="log-time">01:19:15</span>
+          <span class="log-check">✓</span>
+          <span class="log-msg">sharing credentials for production-us-east4-eqdc4a.railway-registry.com</span>
+          <span class="log-dur">0ms</span>
+        </div>
+      </div>
+
+      <div class="build-time-bar">
+        <div class="build-time-label">TOTAL BUILD TIME</div>
+        <div class="build-time-val">41.28 seconds</div>
+      </div>
+    </div>
+
+    <!-- NETWORK FLOW -->
+    <div class="net-flow">
+      <div class="panel-header">
+        <div class="ph-left"><div class="panel-icon"></div> NETWORK::FLOW_INTERCEPT</div>
+        <span style="color:var(--red);font-size:9px;text-shadow:var(--red-glow);">● LIVE CAPTURE</span>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="net-table">
+          <thead>
+            <tr>
+              <th>TIME (GMT+1)</th>
+              <th>DIR</th>
+              <th>PROTO</th>
+              <th>SOURCE</th>
+              <th>DESTINATION</th>
+              <th>PEER</th>
+              <th>TRAFFIC</th>
+              <th>LATENCY</th>
+            </tr>
+          </thead>
+          <tbody id="net-tbody">
+            <tr>
+              <td>01:30:01</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>476 B</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:05</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>711 B</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:05</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>440 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:30:10</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>838 B</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:10</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>264 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:30:14</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>1.0 KB</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:14</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>264 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:30:24</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>396 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:30:26</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>1.9 KB</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:40</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>637 B</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:40</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>264 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:30:49</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>1.1 KB</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:30:59</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>2.0 KB</td>
+              <td>14ms</td>
+            </tr>
+            <tr>
+              <td>01:31:05</td>
+              <td class="dir-out">↑</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>10.144.205.193:41932</td>
+              <td>162.159.134.234:443</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>198 B</td>
+              <td>0ms</td>
+            </tr>
+            <tr>
+              <td>01:31:10</td>
+              <td class="dir-in">↓</td>
+              <td><span class="proto-tcp">TCP</span></td>
+              <td>162.159.134.234:443</td>
+              <td>10.144.205.193:41932</td>
+              <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+              <td>1.7 KB</td>
+              <td>14ms</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="ph-left"><div class="panel-icon"></div> NODES::REGISTRY</div>
+      <span style="color:#004400;font-size:9px">MODULE_03</span>
+    </div>
+
+    <div class="node-list">
+      <div class="node-item">
+        <div class="node-dot active"></div>
+        <div class="node-info">
+          <div class="node-name">discord-monitor</div>
+          <div class="node-ip">10.144.205.193 :: us-east4</div>
+        </div>
+        <div class="node-latency low">14ms</div>
+      </div>
+      <div class="node-item">
+        <div class="node-dot active"></div>
+        <div class="node-info">
+          <div class="node-name">cloudflare-gw</div>
+          <div class="node-ip">162.159.134.234 :: edge</div>
+        </div>
+        <div class="node-latency low">14ms</div>
+      </div>
+      <div class="node-item">
+        <div class="node-dot idle"></div>
+        <div class="node-info">
+          <div class="node-name">redis-cache</div>
+          <div class="node-ip">10.144.205.194 :: us-east4</div>
+        </div>
+        <div class="node-latency mid">28ms</div>
+      </div>
+      <div class="node-item">
+        <div class="node-dot dead"></div>
+        <div class="node-info">
+          <div class="node-name">backup-node</div>
+          <div class="node-ip">10.144.205.195 :: standby</div>
+        </div>
+        <div class="node-latency" style="color:#333">—</div>
+      </div>
+    </div>
+
+    <div class="panel-header" style="margin-top:1px;">
+      <div class="ph-left"><div class="panel-icon"></div> CONN::ANALYTICS</div>
+    </div>
+
+    <div class="panel-body">
+      <div style="font-size:10px;color:#005500;letter-spacing:1px;margin-bottom:8px;">PACKETS / HOUR</div>
+      <div style="display:flex;align-items:flex-end;gap:3px;height:60px;margin-bottom:12px;">
+        <div style="flex:1;background:var(--dark-green);height:40%;"></div>
+        <div style="flex:1;background:var(--dark-green);height:60%;"></div>
+        <div style="flex:1;background:var(--dark-green);height:45%;"></div>
+        <div style="flex:1;background:var(--dark-green);height:80%;"></div>
+        <div style="flex:1;background:var(--dark-green);height:55%;"></div>
+        <div style="flex:1;background:var(--dark-green);height:70%;"></div>
+        <div style="flex:1;background:var(--green);height:100%;box-shadow:var(--glow)"></div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">INBOUND PKTS</div>
+          <div class="sys-value ok" style="font-size:10px;">9</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">OUTBOUND PKTS</div>
+          <div class="sys-value ok" style="font-size:10px;">6</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">TOTAL TRAFFIC</div>
+          <div class="sys-value ok" style="font-size:10px;">~12.4 KB</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">AVG LATENCY</div>
+          <div class="sys-value ok" style="font-size:10px;">7ms</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">PROTOCOL</div>
+          <div class="sys-value cyan" style="font-size:10px;">TCP/443 TLS</div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+        <div style="font-family:'Orbitron',monospace;font-size:9px;color:#005500;letter-spacing:2px;margin-bottom:10px;">:: REPO INFO</div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">OWNER</div>
+          <div class="sys-value" style="font-size:9px;color:var(--dim-green);">contactbitsecurex-sketch</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">REPO</div>
+          <div class="sys-value" style="font-size:10px;color:var(--cyan);">discord-monitor</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">PROCFILE</div>
+          <div class="sys-value" style="font-size:10px;">Create Procfile</div>
+        </div>
+        <div class="sys-item" style="padding:4px 0;border:none;">
+          <div class="sys-label">BRANCH</div>
+          <div class="sys-value" style="font-size:10px;">⎇ main</div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px;">
+        <div style="font-family:'Orbitron',monospace;font-size:8px;color:#004400;letter-spacing:2px;margin-bottom:8px;">:: SECURITY SURFACE</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <span style="font-size:8px;padding:2px 6px;border:1px solid #00ff4133;color:#005500;">TLS 1.3</span>
+          <span style="font-size:8px;padding:2px 6px;border:1px solid #00ff4133;color:#005500;">AES-256</span>
+          <span style="font-size:8px;padding:2px 6px;border:1px solid #00ff4133;color:#005500;">HSTS</span>
+          <span style="font-size:8px;padding:2px 6px;border:1px solid #00ff4133;color:#005500;">CSP</span>
+          <span style="font-size:8px;padding:2px 6px;border:1px solid var(--amber)33;color:var(--amber);">CEH</span>
+          <span style="font-size:8px;padding:2px 6px;border:1px solid #00f5ff33;color:var(--cyan);">OSCP</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>[ discord-monitor :: contactbitsecurex-sketch/discord-monitor ]</div>
+  <div class="footer-center">// CEH OPERATIONS — AUTHORIZED USE ONLY //</div>
+  <div>NODE: 3117e9af — REGION: US-EAST4-EQDC4A — <span style="color:var(--green)">● ACTIVE</span></div>
+</footer>
+
+<script>
+  // Live clock
+  function updateClock() {
+    const now = new Date();
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const d = `${months[now.getMonth()]} ${String(now.getDate()).padStart(2,'0')} ${now.getFullYear()}`;
+    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const tz = 'GMT+1';
+    document.getElementById('live-time').textContent = `${d} — ${t} ${tz}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // Tab switching (visual only)
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  // Auto-add new network rows periodically
+  const sources = ['162.159.134.234:443','162.159.134.234:8443'];
+  const dests = ['10.144.205.193:41932','10.144.205.193:41933'];
+  const sizes = ['264 B','440 B','528 B','308 B','476 B','711 B','838 B','1.0 KB','1.1 KB','1.9 KB'];
+
+  function addNetRow() {
+    const tbody = document.getElementById('net-tbody');
+    const now = new Date();
+    const t = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+    const isIn = Math.random() > 0.4;
+    const size = sizes[Math.floor(Math.random()*sizes.length)];
+    const lat = isIn ? '14ms' : '0ms';
+    const src = isIn ? sources[0] : dests[0];
+    const dst = isIn ? dests[0] : sources[0];
+    const dir = isIn ? '<span class="dir-in">↓</span>' : '<span class="dir-out">↑</span>';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${t}</td>
+      <td>${dir}</td>
+      <td><span class="proto-tcp">TCP</span></td>
+      <td>${src}</td>
+      <td>${dst}</td>
+      <td><div class="peer-internet"><div class="peer-dot"></div>Internet</div></td>
+      <td>${size}</td>
+      <td>${lat}</td>
+    `;
+    tr.style.animation = 'fadeIn .3s';
+    tbody.insertBefore(tr, tbody.firstChild);
+    if (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+  }
+
+  setInterval(addNetRow, 4000);
+</script>
+</body>
+</html>
